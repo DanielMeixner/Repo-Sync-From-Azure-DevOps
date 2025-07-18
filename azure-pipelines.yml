@@ -1,0 +1,52 @@
+# Azure DevOps pipeline to sync repository changes to GitHub
+# This pipeline triggers on any branch changes and pushes to the specified GitHub repository
+
+trigger:
+  branches:
+    include:
+    - '*'  # Trigger on all branches
+
+pool:
+  vmImage: ubuntu-latest
+
+# You'll need to create a GitHub service connection in Azure DevOps project settings
+# or use a secure variable for the GitHub PAT
+variables:
+  - name: 'GitHubUrl'
+    value: 'https://github.com/DanielMeixner/sync-from-ado'
+  # If using a PAT, define it as a secret variable in the pipeline settings
+  # - group: github-secrets  # Uncomment if using variable groups
+
+steps:
+- checkout: self
+  fetchDepth: 0  # Fetch all history and tags
+  displayName: 'Checkout source code'
+
+- script: |
+    git config --global user.email "azure-pipeline@example.com"
+    git config --global user.name "Azure Pipeline"
+    
+    # Add the GitHub repository as a remote
+        git remote add github https://$(GH_PAT)@github.com/DanielMeixner/sync-from-ado-2.git
+
+    # Fetch all remote branches from Azure DevOps
+    git fetch origin
+
+    # Create local tracking branches for all remote branches
+    for branch in $(git branch -r | grep -v '\->' | grep 'origin/' | sed 's/origin\///'); do
+      if [ "$branch" != "HEAD" ]; then
+        git branch --track "$branch" "origin/$branch" 2>/dev/null || true
+      fi
+    done
+
+    # List all local and remote branches
+    echo "Available local branches:"
+    git branch
+    echo "Available remote branches:"
+    git branch -r
+
+    # Always push all branches and tags to GitHub, regardless of HEAD state
+    echo "Pushing all branches and tags to GitHub..."
+    git push github --all -f
+    git push github --tags
+  displayName: 'Sync to GitHub Repository'
