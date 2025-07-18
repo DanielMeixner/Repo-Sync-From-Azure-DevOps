@@ -47,7 +47,5 @@ The pipeline performs the following steps:
 
 
 
-## 🤝 Contribute
 
-Contributions are welcome! Please open issues or pull requests to suggest improvements or report problems. 💡
 
